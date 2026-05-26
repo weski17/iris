@@ -8,18 +8,22 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Copy ML requirements and code
+COPY ml/requirements.txt ./ml_requirements.txt
+COPY ml/ ./ml/
+
+# Install ML dependencies and train model
+RUN pip install --no-cache-dir -r ml_requirements.txt && \
+    python ml/train.py
+
+# Copy API requirements
 COPY api/requirements.txt ./requirements.txt
 
-# Install Python dependencies
+# Install API dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy API code
 COPY api/main.py ./main.py
-
-# Copy model and metadata
-COPY ml/models/iris_model_latest.pkl ./ml/models/iris_model_latest.pkl
-COPY ml/models/iris_model_metadata.json ./ml/models/iris_model_metadata.json
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -29,3 +33,4 @@ EXPOSE 8080
 
 # Run the API
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
