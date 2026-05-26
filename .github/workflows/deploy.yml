@@ -116,15 +116,6 @@ jobs:
           -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}' \
           || exit 1
 
-    - name: 📢 Notify Slack on failure
-      if: failure()
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-      run: |
-        curl -X POST $SLACK_WEBHOOK_URL \
-          -H 'Content-type: application/json' \
-          -d '{"text":"❌ Staging deployment failed - Build #${{ github.run_number }}"}'
-
   deploy-prod:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
@@ -163,20 +154,3 @@ jobs:
 
         curl -f http://localhost:8080/health || exit 1
 
-    - name: 📢 Notify Slack on success
-      if: success()
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-      run: |
-        curl -X POST $SLACK_WEBHOOK_URL \
-          -H 'Content-type: application/json' \
-          -d '{"text":"✅ Production deployment successful - Build #${{ github.run_number }}"}'
-
-    - name: 📢 Notify Slack on failure
-      if: failure()
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-      run: |
-        curl -X POST $SLACK_WEBHOOK_URL \
-          -H 'Content-type: application/json' \
-          -d '{"text":"❌ Production deployment failed - Build #${{ github.run_number }}"}'
