@@ -1,61 +1,51 @@
-import axios, { AxiosInstance } from 'axios';
-import {
-  PredictRequest,
-  PredictResponse,
-  ModelInfo,
-  HealthResponse,
-} from '../types';
+import axios from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-class IrisApiService {
-  private client: AxiosInstance;
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+});
 
-  constructor(baseURL: string = API_BASE_URL) {
-    this.client = axios.create({
-      baseURL,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  async health(): Promise<HealthResponse> {
-    try {
-      const response = await this.client.get<HealthResponse>('/health');
-      return response.data;
-    } catch (error) {
-      throw new Error(`Health check failed: ${error}`);
-    }
-  }
-
-  async predict(request: PredictRequest): Promise<PredictResponse> {
-    try {
-      const response = await this.client.post<PredictResponse>('/predict', request);
-      return response.data;
-    } catch (error: any) {
-      if (error.response) {
-        throw new Error(
-          error.response.data?.error || 'Prediction failed'
-        );
-      }
-      throw new Error('Network error during prediction');
-    }
-  }
-
-  async modelInfo(): Promise<ModelInfo> {
-    try {
-      const response = await this.client.get<ModelInfo>('/model/info');
-      return response.data;
-    } catch (error) {
-      throw new Error(`Failed to fetch model info: ${error}`);
-    }
-  }
-
-  setBaseURL(url: string) {
-    this.client.defaults.baseURL = url;
-  }
+export interface PredictRequest {
+  sepal_length: number;
+  sepal_width: number;
+  petal_length: number;
+  petal_width: number;
 }
 
-export const apiService = new IrisApiService();
+export interface PredictResponse {
+  species: string;
+  confidence: number;
+  probabilities: {
+    setosa: number;
+    versicolor: number;
+    virginica: number;
+  };
+  timestamp: string;
+}
+
+export interface ModelInfo {
+  model_version: string;
+  accuracy: number;
+  training_date: string;
+  feature_names: string[];
+  target_names: string[];
+  n_estimators: number;
+}
+
+export const apiService = {
+  async health() {
+    return api.get('/health');
+  },
+
+  async predict(data: PredictRequest): Promise<PredictResponse> {
+    const response = await api.post('/predict', data);
+    return response.data;
+  },
+
+  async modelInfo(): Promise<ModelInfo> {
+    const response = await api.get('/model/info');
+    return response.data;
+  }
+};
