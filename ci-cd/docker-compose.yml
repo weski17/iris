@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Jenkins - CI/CD Orchestration
+  # ============================================================================
+  jenkins:
+    container_name: iris-jenkins
+    image: jenkins/jenkins:lts
+    ports:
+      - "8000:8080"
+      - "50000:50000"
+    environment:
+      JENKINS_OPTS: "--httpPort=8080"
+      JAVA_OPTS: "-Xmx1024m -Xms512m"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.kube/config:/var/jenkins_home/.kube/config:ro
+    networks:
+      - iris-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ============================================================================
+  # ArgoCD - GitOps Deployment
+  # ============================================================================
+  argocd-server:
+    container_name: iris-argocd-server
+    image: argoproj/argocd:latest
+    ports:
+      - "8443:8080"
+    environment:
+      ARGOCD_SERVER_INSECURE: "true"
+    command: argocd-server --insecure
+    networks:
+      - iris-network
+    depends_on:
+      - argocd-repo-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  argocd-repo-server:
+    container_name: iris-argocd-repo
+    image: argoproj/argocd:latest
+    command: argocd-repo-server
+    networks:
+      - iris-network
+    volumes:
+      - argocd_data:/var/run/argocd
+
+  argocd-controller:
+    container_name: iris-argocd-controller
+    image: argoproj/argocd:latest
+    command: argocd-application-controller
+    environment:
+      ARGOCD_REPO_SERVER: "argocd-repo-server:8081"
+    networks:
+      - iris-network
+    depends_on:
+      - argocd-repo-server
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  iris-network:
+    driver: bridge
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  jenkins_data:
+    driver: local
+  argocd_data:
+    driver: local

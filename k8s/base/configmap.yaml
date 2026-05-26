@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iris-api-config
+  namespace: iris-dev
+data:
+  API_HOST: "0.0.0.0"
+  API_PORT: "8080"
+  API_LOG_LEVEL: "info"
+  MODEL_PATH: "/app/ml/models/iris_model_latest.pkl"
+  METRICS_ENABLED: "true"
+  REPLICAS: "3"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iris-api-config
+  namespace: iris-staging
+data:
+  API_HOST: "0.0.0.0"
+  API_PORT: "8080"
+  API_LOG_LEVEL: "info"
+  MODEL_PATH: "/app/ml/models/iris_model_latest.pkl"
+  METRICS_ENABLED: "true"
+  REPLICAS: "3"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iris-api-config
+  namespace: iris-prod
+data:
+  API_HOST: "0.0.0.0"
+  API_PORT: "8080"
+  API_LOG_LEVEL: "warn"
+  MODEL_PATH: "/app/ml/models/iris_model_latest.pkl"
+  METRICS_ENABLED: "true"
+  REPLICAS: "5"

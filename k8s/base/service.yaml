@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iris-api
+  labels:
+    app: iris-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: iris-api
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iris-api-lb
+  labels:
+    app: iris-api
+  annotations:
+    description: "LoadBalancer for external access"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: iris-api

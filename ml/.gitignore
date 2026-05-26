@@ -1,0 +1,14 @@
+*.pkl
+*.joblib
+__pycache__/
+.pytest_cache/
+.coverage
+*.pyc
+.env
+.venv
+venv/
+mlruns/
+.DS_Store
+*.egg-info/
+dist/
+build/

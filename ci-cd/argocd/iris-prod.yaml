@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: iris-api-prod
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/your-repo/iris.git
+    targetRevision: main
+    path: k8s/overlays/prod
+    plugin:
+      name: kustomize
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: iris-prod
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 10
+
+  notifications:
+  - destination:
+      service: slack
+      channel: '#iris-prod'
+    selector:
+      - key: notify.argocd.argoproj.io/github-pr
+        value: 'true'
+      - key: notify.argocd.argoproj.io/sync-succeeded
+        value: 'true'
+      - key: notify.argocd.argoproj.io/sync-failed
+        value: 'true'
+
+  info:
+  - name: documentation
+    value: https://github.com/your-repo/iris/blob/main/k8s/README.md
+  - name: slack-channel
+    value: '#iris-prod'
+  - name: oncall-link
+    value: https://your-oncall.com/iris

@@ -1,0 +1,235 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        REGISTRY = credentials('docker-registry-url')  // e.g., docker.io
+        REGISTRY_USER = credentials('docker-registry-user')
+        REGISTRY_PASS = credentials('docker-registry-pass')
+        DOCKER_IMAGE = "${REGISTRY}/iris-api"
+        GIT_REPO = "https://github.com/your-repo/iris.git"
+        KUBECONFIG = credentials('kubeconfig')
+        SLACK_WEBHOOK = credentials('slack-webhook')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '🔄 Checking out code...'
+                checkout scm
+                sh 'git log -1 --pretty=format:"%h %s"'
+            }
+        }
+
+        stage('Build & Test - ML') {
+            steps {
+                echo '🧪 Testing ML Model...'
+                dir('ml') {
+                    sh '''
+                        python -m pip install --upgrade pip
+                        pip install -r requirements.txt -q
+                        pytest test_train.py -v --tb=short
+                    '''
+                }
+            }
+        }
+
+        stage('Build & Test - API') {
+            steps {
+                echo '🧪 Testing API...'
+                dir('api') {
+                    sh '''
+                        pip install -r requirements.txt -q
+                        pytest test_api.py -v --tb=short --cov=main --cov-report=term-missing
+                    '''
+                }
+            }
+        }
+
+        stage('Lint & Code Quality') {
+            steps {
+                echo '🔍 Running linters...'
+                dir('api') {
+                    sh '''
+                        pip install pylint flake8 -q
+                        flake8 main.py --count --statistics || true
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo '🐳 Building Docker image...'
+                sh '''
+                    docker build -f api/Dockerfile -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    docker images | grep iris-api
+                '''
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                echo '📦 Pushing image to registry...'
+                sh '''
+                    echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin
+                    docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    docker push ${DOCKER_IMAGE}:latest
+                    docker logout
+                '''
+            }
+        }
+
+        stage('Deploy to Staging') {
+            steps {
+                echo '🚀 Deploying to staging...'
+                sh '''
+                    kubectl set image deployment/iris-api \
+                        iris-api=${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                        -n iris-staging --record
+
+                    kubectl rollout status deployment/iris-api -n iris-staging --timeout=5m
+                '''
+            }
+        }
+
+        stage('Integration Tests - Staging') {
+            steps {
+                echo '🧪 Running integration tests on staging...'
+                sh '''
+                    STAGING_URL=$(kubectl get svc iris-api-lb -n iris-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+                    if [ -z "$STAGING_URL" ]; then
+                        STAGING_URL="localhost:8080"
+                    fi
+
+                    echo "Testing against: $STAGING_URL"
+
+                    for i in {1..5}; do
+                        curl -f http://${STAGING_URL}/health && break || sleep 10
+                    done
+
+                    # Health check
+                    curl -f http://${STAGING_URL}/health || exit 1
+
+                    # Model info
+                    curl -f http://${STAGING_URL}/model/info || exit 1
+
+                    # Prediction test
+                    curl -f -X POST http://${STAGING_URL}/predict \
+                        -H "Content-Type: application/json" \
+                        -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}' \
+                        || exit 1
+
+                    echo "✅ All integration tests passed"
+                '''
+            }
+        }
+
+        stage('Approval for Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo '⏸️ Waiting for production approval...'
+                input(
+                    id: 'ProductionApproval',
+                    message: 'Deploy to production?',
+                    ok: 'Deploy'
+                )
+            }
+        }
+
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo '🚀 Deploying to production...'
+                sh '''
+                    kubectl set image deployment/iris-api \
+                        iris-api=${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                        -n iris-prod --record
+
+                    kubectl rollout status deployment/iris-api -n iris-prod --timeout=10m
+
+                    # Verify
+                    kubectl get pods -n iris-prod -l app=iris-api
+                '''
+            }
+        }
+
+        stage('Smoke Tests - Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo '🧪 Running smoke tests on production...'
+                sh '''
+                    PROD_URL=$(kubectl get svc iris-api-lb -n iris-prod -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+                    if [ -z "$PROD_URL" ]; then
+                        PROD_URL="localhost:8080"
+                    fi
+
+                    echo "Testing against: $PROD_URL"
+
+                    # Health check
+                    curl -f http://${PROD_URL}/health || exit 1
+
+                    # Prediction test
+                    RESPONSE=$(curl -s -X POST http://${PROD_URL}/predict \
+                        -H "Content-Type: application/json" \
+                        -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}')
+
+                    if echo "$RESPONSE" | grep -q '"species"'; then
+                        echo "✅ Production smoke tests passed"
+                    else
+                        echo "❌ Unexpected response: $RESPONSE"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '🧹 Cleanup...'
+            sh 'docker logout || true'
+        }
+
+        success {
+            echo '✅ Pipeline succeeded!'
+            sh '''
+                curl -X POST ${SLACK_WEBHOOK} \
+                    -H 'Content-Type: application/json' \
+                    -d '{"text":"✅ Iris API deployment successful - Build #${BUILD_NUMBER}"}' \
+                    || true
+            '''
+        }
+
+        failure {
+            echo '❌ Pipeline failed!'
+            sh '''
+                curl -X POST ${SLACK_WEBHOOK} \
+                    -H 'Content-Type: application/json' \
+                    -d '{"text":"❌ Iris API deployment failed - Build #${BUILD_NUMBER}"}' \
+                    || true
+            '''
+        }
+
+        unstable {
+            echo '⚠️ Pipeline unstable!'
+        }
+    }
+}

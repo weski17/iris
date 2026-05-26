@@ -1,0 +1,106 @@
+{
+  "overall_metrics": {
+    "accuracy": 0.98,
+    "precision_weighted": 0.980125383486728,
+    "recall_weighted": 0.98,
+    "f1_weighted": 0.9799979997999799
+  },
+  "confusion_matrix": [
+    [
+      50,
+      0,
+      0
+    ],
+    [
+      0,
+      49,
+      1
+    ],
+    [
+      0,
+      2,
+      48
+    ]
+  ],
+  "classification_report": {
+    "setosa": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "versicolor": {
+      "precision": 0.9607843137254902,
+      "recall": 0.98,
+      "f1-score": 0.9702970297029703,
+      "support": 50.0
+    },
+    "virginica": {
+      "precision": 0.9795918367346939,
+      "recall": 0.96,
+      "f1-score": 0.9696969696969697,
+      "support": 50.0
+    },
+    "accuracy": 0.98,
+    "macro avg": {
+      "precision": 0.9801253834867282,
+      "recall": 0.98,
+      "f1-score": 0.97999799979998,
+      "support": 150.0
+    },
+    "weighted avg": {
+      "precision": 0.980125383486728,
+      "recall": 0.98,
+      "f1-score": 0.9799979997999799,
+      "support": 150.0
+    }
+  },
+  "model_metadata": {
+    "model_path": "ml/models/iris_model_20260526_012815.pkl",
+    "training_date": "2026-05-26T01:28:15.433981",
+    "feature_names": [
+      "sepal length (cm)",
+      "sepal width (cm)",
+      "petal length (cm)",
+      "petal width (cm)"
+    ],
+    "target_names": [
+      "setosa",
+      "versicolor",
+      "virginica"
+    ],
+    "metrics": {
+      "accuracy": 0.9,
+      "precision_weighted": 0.9023569023569024,
+      "recall_weighted": 0.9,
+      "f1_weighted": 0.8997493734335839,
+      "precision_setosa": 1.0,
+      "recall_setosa": 1.0,
+      "precision_versicolor": 0.8181818181818182,
+      "recall_versicolor": 0.9,
+      "precision_virginica": 0.8888888888888888,
+      "recall_virginica": 0.8
+    },
+    "feature_importance": {
+      "sepal length (cm)": 0.11634850540739942,
+      "sepal width (cm)": 0.014999733101994138,
+      "petal length (cm)": 0.43146640568097017,
+      "petal width (cm)": 0.4371853558096363
+    },
+    "data_split": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "train_samples": 120,
+      "test_samples": 30
+    },
+    "hyperparameters": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "random_state": 42,
+      "n_jobs": -1,
+      "class_weight": "balanced"
+    }
+  }
+}
