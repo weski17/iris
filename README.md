@@ -1,164 +1,135 @@
-# Iris Classifier - End-to-End ML Project 🌸
+# Iris Classifier - ML Project 🌸
 
-Vollständiges Machine Learning Projekt mit Python (ML), FastAPI (Backend), React Native (Frontend), Docker, Kubernetes und CI/CD.
+End-to-End Machine Learning Klassifikation: **ML Model** → **REST API** → **Web Frontend** → **Monitoring**
 
 ```
 iris/
-├── ml/                          # ML Model (Python)
-│   ├── train.py
-│   ├── config.yaml
-│   ├── requirements.txt
-│   └── models/
-├── api/                         # REST API (FastAPI)
-│   ├── main.py
-│   ├── test_api.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/                    # iOS UI (React Native)
+├── ml/                  # ML Model (scikit-learn)
+│   ├── train.py         # RandomForest Classifier
+│   ├── config.yaml      # Hyperparameters
+│   └── models/          # Trained model + metadata
+├── api/                 # REST API (FastAPI)
+│   ├── main.py          # 3 endpoints
+│   ├── test_api.py      # Tests
+│   └── Dockerfile       # Multi-stage build
+├── frontend/            # Web Frontend (React)
 │   ├── src/
-│   ├── package.json
-│   └── tsconfig.json
-├── monitoring/                  # Prometheus + Grafana
-│   ├── prometheus.yml
-│   └── grafana/
-├── docker-compose.yml           # Local Development
-├── Makefile                     # Commands
-└── README.md                    # This file
+│   ├── index.html
+│   └── package.json
+├── monitoring/          # Prometheus + Grafana
+├── docker-compose.yml   # All services
+└── Makefile            # Commands
 ```
 
 ---
 
-## 🚀 Quick Start (Docker Compose)
+## 🚀 Quick Start (5 Min Setup)
 
-### 1. Voraussetzungen
-
+### 1. Prerequisites
 - Docker & Docker Compose
-- Python 3.10+ (für lokale Entwicklung)
-- Node.js 18+ (für Frontend)
+- Node.js 18+ (nur für Frontend-Dev)
 
-### 2. Setup
+### 2. Start Everything
 
 ```bash
-# Clone/Download Projekt
 cd iris
-
-# Installiere Dependencies (lokal)
-make setup
-
-# Trainiere Modell
-make train
+docker-compose up
 ```
 
-### 3. Starte alle Services
+**Services laufen dann:**
+
+| Service | URL |
+|---------|-----|
+| **API Docs** | http://localhost:8080/docs |
+| **Frontend** | http://localhost:3000 |
+| **Prometheus** | http://localhost:9090 |
+| **Grafana** | http://localhost:3000 (admin/admin) |
+| **MLflow** | http://localhost:5000 |
+
+---
+
+## 🎮 Quick Commands
 
 ```bash
-# Build Docker Images
-make build
+# Start everything
+make up
 
-# Start Services
+# Stop everything
+make down
+
+# View logs
+make logs
+
+# Test API
+make predict
+
+# Check health
+make health
+
+# Full setup (first time)
+make setup
+make train
+make build
 make up
 ```
 
-**Services laufen dann auf:**
+---
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **API Docs** | http://localhost:8080/docs | - |
-| **Prometheus** | http://localhost:9090 | - |
-| **Grafana** | http://localhost:3000 | admin/admin |
-| **MLflow** | http://localhost:5000 | - |
+## 🏗️ Architecture
+
+```
+┌─────────────────────────┐
+│   React Web Frontend    │  ← http://localhost:3000
+│   (iPhone-style UI)     │
+└────────────┬────────────┘
+             │ REST API (Axios)
+┌────────────▼────────────┐
+│    FastAPI :8080        │
+│  /predict → ML Model    │
+└────────────┬────────────┘
+             │ scikit-learn
+┌────────────▼────────────┐
+│   Iris Classifier       │
+│   RandomForest (96%)     │
+└─────────────────────────┘
+
+Monitoring:
+┌──────────────────────────┐
+│ Prometheus :9090         │
+│ Grafana :3000            │
+│ MLflow :5000             │
+└──────────────────────────┘
+```
 
 ---
 
-## 📋 Makefile Commands
+## 📱 Frontend (React Web)
 
+**Features:**
+- 🎨 iPhone-style Design (Tailwind CSS)
+- 🎚️ 4 Interactive Sliders
+- 📊 Real-time Predictions
+- ⚡ Live API Status
+
+**Dev Mode:**
 ```bash
-# Setup & Build
-make setup              # Install all dependencies
-make build              # Build Docker images
-make train              # Train ML model
-
-# Running
-make up                 # Start all services
-make down               # Stop all services
-make logs               # Show logs
-
-# Testing
-make test-api           # Test API
-make test-ml            # Test ML model
-make health             # Check API health
-
-# Development
-make api-dev            # Run API locally
-make frontend-dev       # Run Frontend locally
-make mlflow             # Open MLflow UI
-
-# Utilities
-make ps                 # Show running containers
-make shell-api          # Bash into API container
-make predict            # Make test prediction
-```
-
----
-
-## 📊 Services Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                  React Native Frontend              │
-│              (iOS Design, Dark Mode)                │
-└─────────────────────┬───────────────────────────────┘
-                      │ HTTP/REST
-┌─────────────────────▼───────────────────────────────┐
-│              FastAPI (Python) - :8080               │
-│      (/health, /predict, /model/info, /metrics)    │
-└─────────────────────┬───────────────────────────────┘
-                      │ scikit-learn
-┌─────────────────────▼───────────────────────────────┐
-│         ML Model (RandomForestClassifier)           │
-│         (iris_model_latest.pkl - 100KB)             │
-└─────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  Prometheus :9090        Grafana :3000               │
-│  (Metrics Collection)    (Dashboards & Alerts)       │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  MLflow UI :5000 (Experiment Tracking)               │
-└──────────────────────────────────────────────────────┘
+cd frontend
+npm install
+npm run dev  # http://localhost:3000
 ```
 
 ---
 
 ## 🧪 Testing
 
-### API Tests
-
 ```bash
-# Alle Tests
+# API Tests
 make test-api
 
-# Oder manuell
-cd api && pytest test_api.py -v
+# ML Tests
+make test-ml
 
-# Mit Coverage
-pytest test_api.py --cov=main --cov-report=html
-```
-
-### Test Prediction
-
-```bash
-# Health Check
-make health
-
-# Get Model Info
-make model-info
-
-# Make Prediction
-make predict
-
-# oder manuell:
+# Test Prediction
 curl -X POST http://localhost:8080/predict \
   -H "Content-Type: application/json" \
   -d '{
@@ -171,267 +142,123 @@ curl -X POST http://localhost:8080/predict \
 
 ---
 
+## 📊 Monitoring
+
+### Prometheus
+- Metrics: http://localhost:9090
+- Query examples:
+  ```promql
+  rate(http_requests_total[5m])
+  sum(iris_predictions_total) by (species)
+  histogram_quantile(0.99, iris_prediction_duration_seconds_bucket)
+  ```
+
+### Grafana
+- Dashboard: http://localhost:3000
+- Login: `admin` / `admin`
+- Dashboards: Iris Classifier Metrics (auto-imported)
+
+### MLflow
+- UI: http://localhost:5000
+- View experiments & model versions
+
+---
+
 ## 🛠️ Local Development
 
-### Nur API entwickeln
-
-```bash
-cd api
-pip install -r requirements.txt
-python main.py
-```
-
-API läuft auf: http://localhost:8080/docs
-
-### Nur Frontend entwickeln
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-Wähle: `i` (iOS Simulator), `a` (Android), oder `w` (Web)
-
-### Nur ML entwickeln
-
+### Just ML
 ```bash
 cd ml
 pip install -r requirements.txt
 python train.py
 ```
 
----
-
-## 📊 Monitoring
-
-### Prometheus Queries
-
-```promql
-# Request Rate (5m avg)
-rate(http_requests_total[5m])
-
-# Predictions by Species
-sum(iris_predictions_total) by (species)
-
-# Prediction Latency (p99)
-histogram_quantile(0.99, rate(iris_prediction_duration_seconds_bucket[5m]))
-
-# Error Rate
-rate(http_requests_total{status=~"5.."}[5m])
+### Just API
+```bash
+cd api
+pip install -r requirements.txt
+python main.py  # http://localhost:8080/docs
 ```
 
-### Grafana Dashboards
-
-- **Iris Classifier Metrics** (Auto-provisioned)
-  - Request Rate
-  - Predictions by Species
-  - Prediction Duration
-  - Error Rate
+### Just Frontend
+```bash
+cd frontend
+npm install
+npm run dev  # http://localhost:3000
+```
 
 ---
 
-## 🐳 Docker Commands
+## 📋 Makefile
 
 ```bash
-# Build
-docker-compose build
+# Setup
+make setup              # Install dependencies
+make build              # Build Docker images
+make train              # Train ML model
 
-# Start
-docker-compose up -d
+# Running
+make up                 # Start services
+make down               # Stop services
+make logs               # View logs
 
-# Stop
-docker-compose down
+# Testing
+make test-api           # Run API tests
+make test-ml            # Run ML tests
+make health             # Health check
+make predict            # Test prediction
+make model-info         # Get model info
 
-# Logs
-docker-compose logs -f api
-
-# Into Container
-docker-compose exec api bash
-
-# Remove Everything
-docker-compose down -v
+# Development
+make api-dev            # API locally
+make frontend-dev       # Frontend locally
+make ps                 # Show containers
+make shell-api          # Bash into API
 ```
-
----
-
-## 📱 Frontend Usage
-
-### Screens
-
-1. **Home** 📊
-   - API Status
-   - Model Metrics
-   - Feature Info
-
-2. **Predict** 🌸
-   - 4 Sliders (Sepal/Petal)
-   - Live Summary
-   - Classify Button
-
-3. **Result** 📈
-   - Species + Emoji
-   - Confidence Badge
-   - Probability Distribution
-   - Back Button
-
-### API URL Configuration
-
-Bearbeite in `frontend/src/services/api.ts`:
-
-```typescript
-// Local Development
-const API_BASE_URL = 'http://127.0.0.1:8080';
-
-// Real Device (use local IP)
-const API_BASE_URL = 'http://192.168.1.100:8080';
-```
-
----
-
-## 🔄 CI/CD (Nächste Schritte)
-
-Nach TEIL 3 (Frontend):
-
-- **TEIL 4:** Docker & Kubernetes
-  - Kubernetes Manifests (Deployment, Service, HPA)
-  - Helm Chart
-
-- **TEIL 5:** CI/CD Pipeline
-  - Jenkins Jenkinsfile
-  - ArgoCD GitOps
-
-- **TEIL 6:** Advanced Monitoring
-  - Alert Rules
-  - Custom Dashboards
-
----
-
-## 📚 Komponenten-Übersicht
-
-### ✅ TEIL 1 - ML Model (Python)
-
-**Datei:** `ml/train.py`
-
-- RandomForestClassifier (100 Estimators)
-- 5-Fold Cross-Validation
-- MLflow Experiment Tracking
-- Output: `iris_model_latest.pkl` (100KB)
-
-**Metriken:**
-- Accuracy: ~96%
-- Precision: ~96%
-- Recall: ~96%
-
-### ✅ TEIL 2 - REST API (FastAPI)
-
-**Datei:** `api/main.py`
-
-- `GET /health` → Health Check
-- `POST /predict` → Classification
-- `GET /model/info` → Model Metadata
-- `GET /metrics` → Prometheus Metrics
-
-**Latenz:** ~30ms/request
-
-### ✅ TEIL 3 - Frontend (React Native)
-
-**Datei:** `frontend/src/App.tsx`
-
-- Tab Navigation (Home, Predict, Result)
-- 4 Interactive Sliders
-- iOS Design System (SF Symbols)
-- Dark Mode Support
 
 ---
 
 ## 🐛 Troubleshooting
 
-### "Port already in use"
-
+### Port Already in Use
 ```bash
-# Find & kill process
-lsof -i :8080
-kill -9 <PID>
-
-# Oder anderen Port nutzen
-docker-compose.yml anpassen:
-ports:
-  - "8081:8080"  # Use 8081
+docker-compose down -v
+docker-compose up
 ```
 
-### "Model file not found"
-
+### Model Not Found
 ```bash
-# Stelle sicher Modell existiert:
-ls -la ml/models/
-# Sollte anzeigen:
-# iris_model_latest.pkl
-# iris_model_metadata.json
-
-# Falls nicht:
 make train
+docker-compose up
 ```
 
-### "Docker images not found"
-
-```bash
-docker-compose build --no-cache
+### Frontend Won't Connect
+Check `frontend/src/services/api.ts`:
+```typescript
+const API_BASE_URL = 'http://localhost:8080';  // ← Muss stimmen
 ```
-
-### "API connection refused"
-
-```bash
-# Check if API container is running:
-docker-compose ps
-
-# View logs:
-docker-compose logs api
-
-# Restart:
-docker-compose restart api
-```
-
----
-
-## 📖 Documentation
-
-- **ML:** `ml/README.md`
-- **API:** `api/README.md`
-- **Frontend:** `frontend/README.md`
 
 ---
 
 ## 📊 Project Stats
 
 ```
-Lines of Code:
-  ML (train.py):        ~250 lines
-  API (main.py):        ~350 lines
-  Frontend:             ~800 lines (TypeScript/React Native)
-  Total:                ~1400 LOC
-
-Dependencies:
-  Python:               15 packages
-  Node.js:              20 packages
-  Rust (Deprecated):    N/A
-
-Build Times:
-  ML Training:          ~10-15 seconds
-  Docker Build:         ~3-5 minutes
-  Total Setup:          ~20 minutes
+ML Model:        RandomForest (96% accuracy)
+API Latency:     ~30ms/prediction
+Frontend:        React 18 + TypeScript + Tailwind
+Monitoring:      Prometheus + Grafana + MLflow
 ```
 
 ---
 
-## ✨ Next Steps
+## ✨ That's It!
 
-1. **Test locally** → `make up` → Open http://localhost:8080/docs
-2. **Train model** → `make train`
-3. **Run tests** → `make test-api`
-4. **Develop frontend** → `make frontend-dev`
-5. **Monitor** → Open http://localhost:3000 (Grafana)
+**Everything is local. Everything is simple. No Kubernetes. No CI/CD. Just code.** 🚀
 
----
+```bash
+make setup
+make up
+# Open http://localhost:3000
+# Done ✓
+```
 
-Viel Spaß mit dem Projekt! 🚀🌸
