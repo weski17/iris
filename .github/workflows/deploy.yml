@@ -118,13 +118,12 @@ jobs:
 
     - name: 📢 Notify Slack on failure
       if: failure()
-      uses: slackapi/slack-github-action@v1
-      with:
-        webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-        payload: |
-          {
-            "text": "❌ Staging deployment failed - Build #${{ github.run_number }}"
-          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        curl -X POST $SLACK_WEBHOOK_URL \
+          -H 'Content-type: application/json' \
+          -d '{"text":"❌ Staging deployment failed - Build #${{ github.run_number }}"}'
 
   deploy-prod:
     name: 🚀 Deploy to Production
@@ -166,20 +165,18 @@ jobs:
 
     - name: 📢 Notify Slack on success
       if: success()
-      uses: slackapi/slack-github-action@v1
-      with:
-        webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-        payload: |
-          {
-            "text": "✅ Production deployment successful - Build #${{ github.run_number }}"
-          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        curl -X POST $SLACK_WEBHOOK_URL \
+          -H 'Content-type: application/json' \
+          -d '{"text":"✅ Production deployment successful - Build #${{ github.run_number }}"}'
 
     - name: 📢 Notify Slack on failure
       if: failure()
-      uses: slackapi/slack-github-action@v1
-      with:
-        webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-        payload: |
-          {
-            "text": "❌ Production deployment failed - Build #${{ github.run_number }}"
-          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        curl -X POST $SLACK_WEBHOOK_URL \
+          -H 'Content-type: application/json' \
+          -d '{"text":"❌ Production deployment failed - Build #${{ github.run_number }}"}'
