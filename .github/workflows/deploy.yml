@@ -33,6 +33,9 @@ jobs:
         pip install -r ml/requirements.txt
         pytest ml/test_train.py -v --tb=short
 
+    - name: 🧠 Train ML model
+      run: python ml/train.py
+
     - name: 📦 Install API dependencies
       run: |
         pip install -r api/requirements.txt

@@ -13,10 +13,11 @@ from typing import Optional
 
 import joblib
 import numpy as np
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
 
 logging.basicConfig(
@@ -25,11 +26,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Lifespan event handler
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("🚀 Iris Prediction API starting...")
+    if model_manager:
+        logger.info("✅ Model ready for predictions")
+    else:
+        logger.error("❌ Model initialization failed")
+    yield
+    logger.info("🛑 Iris Prediction API shutting down")
+
+
 # FastAPI App
 app = FastAPI(
     title="Iris Classifier API",
     description="REST API für Iris-Blumen-Klassifikation mit Machine Learning",
     version="0.1.0",
+    lifespan=lifespan
 )
 
 # CORS Middleware
@@ -69,26 +83,26 @@ HTTP_REQUESTS = Counter(
 
 class PredictRequest(BaseModel):
     """Prediction Request Schema"""
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "sepal_length": 5.1,
+            "sepal_width": 3.5,
+            "petal_length": 1.4,
+            "petal_width": 0.2
+        }
+    })
+
     sepal_length: float = Field(..., ge=0.0, le=10.0, description="Sepal length in cm")
     sepal_width: float = Field(..., ge=0.0, le=10.0, description="Sepal width in cm")
     petal_length: float = Field(..., ge=0.0, le=10.0, description="Petal length in cm")
     petal_width: float = Field(..., ge=0.0, le=10.0, description="Petal width in cm")
 
-    @validator('sepal_length', 'sepal_width', 'petal_length', 'petal_width')
+    @field_validator('sepal_length', 'sepal_width', 'petal_length', 'petal_width')
+    @classmethod
     def validate_positive(cls, v):
         if v <= 0:
             raise ValueError('must be positive')
         return v
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "sepal_length": 5.1,
-                "sepal_width": 3.5,
-                "petal_length": 1.4,
-                "petal_width": 0.2
-            }
-        }
 
 
 class ProbabilityDistribution(BaseModel):
@@ -115,6 +129,8 @@ class HealthResponse(BaseModel):
 
 class ModelInfoResponse(BaseModel):
     """Model Information Response"""
+    model_config = ConfigDict(protected_namespaces=())
+
     model_version: str
     accuracy: float
     training_date: str
@@ -315,24 +331,6 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
-
-
-# ============================================================================
-# Startup & Shutdown
-# ============================================================================
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("🚀 Iris Prediction API starting...")
-    if model_manager:
-        logger.info("✅ Model ready for predictions")
-    else:
-        logger.error("❌ Model initialization failed")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("🛑 Iris Prediction API shutting down")
 
 
 # ============================================================================
